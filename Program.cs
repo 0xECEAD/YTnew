@@ -238,7 +238,7 @@ namespace YTnew
       {
          var yt = LoadDatabase();
          log.Verbose($"Remove channel: {channel}");
-         var ch = yt.FirstOrDefault(c => c.channel == channel);
+         var ch = yt.FirstOrDefault(c => c.channel.Equals(channel, StringComparison.InvariantCultureIgnoreCase));
          if (ch == null) { log.Warning($"Channel {channel} not in database."); return; }
          var yt2 = yt.Except(new[] { ch }).ToArray();
          Console.WriteLine($"Removed {channel} from database");
@@ -254,7 +254,7 @@ namespace YTnew
          if (!yt.Any()) { Console.WriteLine("Empty"); return; }
          var width1 = yt.Max(c => c.channel.Length);
          var width2 = yt.Max(c => c.url.Length);
-         foreach (var c in yt)
+         foreach (var c in yt.OrderBy(c => c.channel))
             Console.WriteLine($"Channel: {c.channel.PadRight(width1)}  URL: {c.url.PadRight(width2)}  Checked: {c.last.ToLocalTime():d}");
       }
 
@@ -392,7 +392,7 @@ namespace YTnew
 
             log.Verbose($"{c.channel} released '{title}' {time}");
             Console.WriteLine($"https://www.youtube.com/watch?v={video}");
-            if (writeLink) WriteShortcut(c.channel, video);
+            if (writeLink) WriteShortcut(c.channel, video, videoTime);
             if (newVideo.Length == 0) newVideo = video;
          }
 
@@ -403,12 +403,15 @@ namespace YTnew
       // --------------------------------------------------------------------------------------------------------------------------------
 
       // Write a shortcur url file in the current directory
-      private void WriteShortcut(string channel, string video)
+      private void WriteShortcut(string channel, string video, DateTimeOffset dt)
       {
          try
          {
+            if (video.StartsWith("shorts/")) video = video.Substring(8);
             var file = $"{channel} - video[{video}]";
-            File.WriteAllText(Path.ChangeExtension(Path.Combine(shortcutPath, file), ".url"), $"[InternetShortcut]\r\nURL=https://www.youtube.com/watch?v=" + video);
+            var path = Path.ChangeExtension(Path.Combine(shortcutPath, file), ".url");
+            File.WriteAllText(path, $"[InternetShortcut]\r\nURL=https://www.youtube.com/watch?v=" + video);
+            File.SetCreationTime(path, dt.ToLocalTime().DateTime);
          }
          catch (Exception ex)
          {
