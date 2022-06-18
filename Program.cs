@@ -411,7 +411,7 @@ namespace YTnew
             var file = $"{channel} - video[{video}]";
             var path = Path.ChangeExtension(Path.Combine(shortcutPath, file), ".url");
             File.WriteAllText(path, $"[InternetShortcut]\r\nURL=https://www.youtube.com/watch?v=" + video);
-            File.SetCreationTime(path, dt.ToLocalTime().DateTime);
+            File.SetLastWriteTimeUtc(path, dt.UtcDateTime);
          }
          catch (Exception ex)
          {
