@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Web;
 
 namespace YTnew;
 
@@ -6,7 +7,7 @@ class YTNew
 {
    // --------------------------------------------------------------------------------------------------------------------------------
 
-   private enum cmd { none, add, remove, list, generate, version, usage, };
+   private enum eCmd { none, add, remove, list, generate, version, usage, };
    private const string version = "1.0.1a";
    private ColorConsoleLog log = new();
    private string databasePath = @".\YTnew.database.json";
@@ -25,12 +26,12 @@ class YTNew
       var (cmd, param) = GetOptions(args);
       switch (cmd)
       {
-         case cmd.add: AddChannel(param); break;
-         case cmd.remove: RemoveChannel(param); break;
-         case cmd.list: List(); break;
-         case cmd.generate: Generate(); break;
-         case cmd.version: PrintVersion(); break;
-         case cmd.usage: PrintUsage(); break;
+         case eCmd.add: AddChannel(param); break;
+         case eCmd.remove: RemoveChannel(param); break;
+         case eCmd.list: List(); break;
+         case eCmd.generate: Generate(); break;
+         case eCmd.version: PrintVersion(); break;
+         case eCmd.usage: PrintUsage(); break;
          default: break;
       }
       return 0;
@@ -38,34 +39,34 @@ class YTNew
 
    // --------------------------------------------------------------------------------------------------------------------------------
 
-   private (cmd, string) GetOptions(string[] args)
+   private (eCmd, string) GetOptions(string[] args)
    {
       // check if verbose logging is enabled
       for (var i = 0; i < args.Length; i++) { if (args[i] == "-v" || args[i] == "--verbose") { log.LogVerbose = true; log.Verbose($"Enable verbose logging"); args[i] = ""; break; }; }
 
       // check command
-      var c = cmd.none;
+      var c = eCmd.none;
       var idxPrm = -1; string p = "";
       for (var i = 0; i < args.Length; i++)
       {
-         if (args[i] == "add") { c = cmd.add; idxPrm = i + 1; }
-         if (args[i] == "remove") { c = cmd.remove; idxPrm = i + 1; }
-         if (args[i] == "list") c = cmd.list;
-         if (args[i] == "generate") c = cmd.generate;
-         if (args[i] == "version" || args[i] == "--version" || args[i] == "-v") c = cmd.version;
-         if (args[i] == "help" || args[i] == "--help" || args[i] == "-h" || args[i] == "/?") c = cmd.usage;
-         if (c != cmd.none) { args[i] = ""; break; }
+         if (args[i] == "add") { c = eCmd.add; idxPrm = i + 1; }
+         if (args[i] == "remove") { c = eCmd.remove; idxPrm = i + 1; }
+         if (args[i] == "list") c = eCmd.list;
+         if (args[i] == "generate") c = eCmd.generate;
+         if (args[i] == "version" || args[i] == "--version" || args[i] == "-v") c = eCmd.version;
+         if (args[i] == "help" || args[i] == "--help" || args[i] == "-h" || args[i] == "/?") c = eCmd.usage;
+         if (c != eCmd.none) { args[i] = ""; break; }
       }
-      if (c == cmd.none) c = cmd.generate; //default
-      if (c == cmd.add || c == cmd.remove)      // check paramters for add/remove
+      if (c == eCmd.none) c = eCmd.generate; //default
+      if (c == eCmd.add || c == eCmd.remove)      // check paramters for add/remove
       {
-         if (idxPrm >= args.Length || args[idxPrm] == "") { log.Error("Missing arguments."); return (cmd.none, ""); } // none?
+         if (idxPrm >= args.Length || args[idxPrm] == "") { log.Error("Missing arguments."); return (eCmd.none, ""); } // none?
          p = args[idxPrm]; args[idxPrm] = "";   // clear detected params
          log.Verbose($"Arguments for add/remove is '{p}'.");
       }
 
       // check database
-      if (c == cmd.add || c == cmd.remove || c == cmd.generate || c == cmd.list)
+      if (c == eCmd.add || c == eCmd.remove || c == eCmd.generate || c == eCmd.list)
       {
          // check if environment variable is set
          var dbPath = Environment.GetEnvironmentVariable("YTNEW_DATABASE");
@@ -76,7 +77,7 @@ class YTNew
             if (args[i] == "--database" || args[i] == "-d")
             {
                args[i] = ""; i++;
-               if (i >= args.Length || args[i] == "") { log.Error("Missing arguments."); return (cmd.none, ""); }
+               if (i >= args.Length || args[i] == "") { log.Error("Missing arguments."); return (eCmd.none, ""); }
                databasePath = args[i]; args[i] = "";
                log.Verbose($"Database set to: '{databasePath}'");
                break;
@@ -84,11 +85,11 @@ class YTNew
          }
 
          // check database exists
-         if (c != cmd.add && !File.Exists(databasePath)) { log.Error($"Database: '{databasePath}' does not exist."); return (cmd.none, ""); }
+         if (c != eCmd.add && !File.Exists(databasePath)) { log.Error($"Database: '{databasePath}' does not exist."); return (eCmd.none, ""); }
       }
 
       // check args for dryrun
-      if (c == cmd.add || c == cmd.remove || c == cmd.generate)
+      if (c == eCmd.add || c == eCmd.remove || c == eCmd.generate)
       {
          for (var i = 0; i < args.Length; i++)
          {
@@ -102,20 +103,20 @@ class YTNew
       }
 
       // check arg for shortcut
-      if (c == cmd.generate)
+      if (c == eCmd.generate)
          for (var i = 0; i < args.Length; i++)
          {
             if (args[i] == "--shortcut" || args[i] == "-s")
             {
                writeLink = true; args[i] = ""; i++;
-               if (i < args.Length && args[i] != "") { shortcutPath = args[i]; args[i] = ""; if (!Directory.Exists(shortcutPath)) { log.Error($"Invalid path: '{shortcutPath}'."); return (cmd.none, ""); } }
+               if (i < args.Length && args[i] != "") { shortcutPath = args[i]; args[i] = ""; if (!Directory.Exists(shortcutPath)) { log.Error($"Invalid path: '{shortcutPath}'."); return (eCmd.none, ""); } }
                log.Verbose($"Enable writing shortcuts to '{shortcutPath}'");
                break;
             }
          }
 
       // any now unprocessed arguments are invalid
-      for (var i = 0; i < args.Length; i++) { if (args[i] != "") { log.Error($"Invalid option: {args[i]}."); return (cmd.none, ""); } }
+      for (var i = 0; i < args.Length; i++) { if (args[i] != "") { log.Error($"Invalid option: {args[i]}."); return (eCmd.none, ""); } }
       return (c, p);
    }
 
@@ -130,7 +131,7 @@ class YTNew
       var yt = LoadDatabase();
       if (yt.FirstOrDefault(c2 => c2.channel == c.channel) != null || yt.FirstOrDefault(c2 => c2.url == c.url) != null) { log.Error($"Channel '{c.channel}' is already in the database."); return; }
       Console.WriteLine($"Added '{c.channel}' to database");
-      SaveDatabase(yt.Concat(new[] { c }).ToArray());
+      SaveDatabase(yt.Concat([c]).ToArray());
    }
 
    // --------------------------------------------------------------------------------------------------------------------------------
@@ -185,17 +186,16 @@ class YTNew
          var response = client.GetAsync($"https://www.youtube.com/{url}/featured").Result;
          var html = response.Content.ReadAsStringAsync().Result;
 
-         const string tokenUrl = "\"@id\":";
-         const string tokenTitle = "\"name\": \"";
+         const string tokenTitle = "<title>";
+         const string tokenEnd = "</title>";
 
-         var start = html.IndexOf(tokenUrl, 0);
-         if (start == -1) { log.Error("token not found."); return null; }
-         start = html.IndexOf(tokenTitle, start);
+         var start = html.IndexOf(tokenTitle, 0);
          if (start == -1) { log.Error("token not found."); return null; }
          start += tokenTitle.Length;
-         var end = html.IndexOf("\"", start + 1);
+         var end = html.IndexOf(tokenEnd, start + 1);
          if (end == -1) { log.Error("token not found."); return null; }
          var title = html.Substring(start, end - start);
+         title = HttpUtility.HtmlDecode(title.Replace(" - YouTube", ""));
          log.Verbose($"Channel Title: {title}");
          return new yt { url = url, channel = title, last = DateTimeOffset.Now.Date };
       }
